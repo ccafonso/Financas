@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro Pessoal</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>💰</text></svg>">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%234f46e5' rx='20'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>💰</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #dbeafe, #e0e7ff);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-indigo-900 mb-8 text-center">
+            Gestor Financeiro Pessoal
+        </h1>
+
+        <div class="flex justify-center gap-4 mb-6">
+            <button onclick="exportData()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition shadow-lg">
+                📥 Exportar Dados
+            </button>
+            <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg">
+                📤 Importar Dados
+            </button>
+            <input type="file" id="fileInput" accept=".json" onchange="importData(event)" class="hidden">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Saldo Total</p>
+                        <p id="balance" class="text-3xl font-bold text-green-600">€0.00</p>
+                    </div>
+                    <div class="text-5xl">💰</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Entradas</p>
+                        <p id="income" class="text-3xl font-bold text-green-600">€0.00</p>
+                    </div>
+                    <div class="text-5xl">📈</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Despesas</p>
+                        <p id="expenses" class="text-3xl font-bold text-red-600">€0.00</p>
+                    </div>
+                    <div class="text-5xl">📉</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Nova Transação</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Tipo</label>
+                        <select id="type" onchange="toggleCategory()" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="despesa">Despesa</option>
+                            <option value="entrada">Entrada</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-2">Descrição</label>
+                        <input type="text" id="description" placeholder="Ex: Salário, Supermercado..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-2">Valor (€)</label>
+                        <input type="number" id="amount" step="0.01" placeholder="0.00" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-2">Data</label>
+                        <input type="date" id="date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <div id="categoryDiv">
+                        <label class="block text-gray-700 mb-2">Categoria</label>
+                        <div class="flex gap-2">
+                            <select id="category" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </select>
+                            <button onclick="showAddCategory()" class="bg-gray-600 text-white px-4 rounded-lg hover:bg-gray-700 transition">➕</button>
+                        </div>
+                    </div>
+
+                    <button onclick="addTransaction()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                        ➕ Adicionar Transação
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Despesas</h2>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="changeChartPeriod(-1)" class="bg-gray-300 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-400 transition">
+                            ◀
+                        </button>
+                        <select id="view" onchange="resetChartPeriod(); updateChart()" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="semanal">Semanal</option>
+                            <option value="mensal">Mensal</option>
+                            <option value="anual">Anual</option>
+                        </select>
+                        <button onclick="changeChartPeriod(1)" class="bg-gray-300 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-400 transition">
+                            ▶
+                        </button>
+                    </div>
+                </div>
+                <div id="chartPeriod" class="text-center text-gray-700 font-semibold mb-2"></div>
+                <canvas id="chart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Histórico de Transações</h2>
+            <div id="history" class="space-y-3 max-h-96 overflow-y-auto">
+                <p class="text-gray-500 text-center py-8">Nenhuma transação registada ainda</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar categoria -->
+    <div id="categoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Adicionar Nova Categoria</h3>
+            <input type="text" id="newCategory" placeholder="Nome da categoria" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-4">
+            <div class="flex gap-3">
+                <button onclick="addCategory()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                    Adicionar
+                </button>
+                <button onclick="hideAddCategory()" class="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar transação -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Editar Transação</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 mb-2">Tipo</label>
+                    <select id="editType" onchange="toggleEditCategory()" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="despesa">Despesa</option>
+                        <option value="entrada">Entrada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">Descrição</label>
+                    <input type="text" id="editDescription" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">Valor (€)</label>
+                    <input type="number" id="editAmount" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">Data</label>
+                    <input type="date" id="editDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div id="editCategoryDiv">
+                    <label class="block text-gray-700 mb-2">Categoria</label>
+                    <select id="editCategory" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="saveEdit()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                    Guardar
+                </button>
+                <button onclick="hideEditModal()" class="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [];
+        let chart = null;
+        let categories = ['Alimentação', 'Transporte', 'Habitação', 'Saúde', 'Educação', 'Lazer', 'Compras', 'Outros'];
+        let editingId = null;
+        let chartOffset = 0; // 0 = período atual, -1 = período anterior, etc.
+
+        // Inicializar data com hoje
+        document.getElementById('date').valueAsDate = new Date();
+
+        function updateCategorySelect() {
+            const select = document.getElementById('category');
+            select.innerHTML = categories.map(cat => `<option>${cat}</option>`).join('');
+        }
+
+        function showAddCategory() {
+            document.getElementById('categoryModal').classList.remove('hidden');
+        }
+
+        function hideAddCategory() {
+            document.getElementById('categoryModal').classList.add('hidden');
+            document.getElementById('newCategory').value = '';
+        }
+
+        function addCategory() {
+            const newCat = document.getElementById('newCategory').value.trim();
+            if (!newCat) {
+                alert('Introduz o nome da categoria!');
+                return;
+            }
+            if (categories.includes(newCat)) {
+                alert('Esta categoria já existe!');
+                return;
+            }
+            categories.push(newCat);
+            updateCategorySelect();
+            hideAddCategory();
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('Tens a certeza que queres apagar esta transação?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                updateUI();
+            }
+        }
+
+        function editTransaction(id) {
+            const transaction = transactions.find(t => t.id === id);
+            if (!transaction) return;
+
+            editingId = id;
+            
+            // Preencher o modal com os dados
+            document.getElementById('editType').value = transaction.type;
+            document.getElementById('editDescription').value = transaction.description;
+            document.getElementById('editAmount').value = transaction.amount;
+            
+            // Converter a data para formato correto
+            const date = new Date(transaction.date);
+            const dateStr = date.toISOString().split('T')[0];
+            document.getElementById('editDate').value = dateStr;
+            
+            // Atualizar categorias no select de edição
+            const editSelect = document.getElementById('editCategory');
+            editSelect.innerHTML = categories.map(cat => `<option>${cat}</option>`).join('');
+            document.getElementById('editCategory').value = transaction.category;
+            
+            toggleEditCategory();
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function toggleEditCategory() {
+            const type = document.getElementById('editType').value;
+            const categoryDiv = document.getElementById('editCategoryDiv');
+            categoryDiv.style.display = type === 'despesa' ? 'block' : 'none';
+        }
+
+        function saveEdit() {
+            const description = document.getElementById('editDescription').value;
+            const amount = parseFloat(document.getElementById('editAmount').value);
+            const type = document.getElementById('editType').value;
+            const category = type === 'despesa' ? document.getElementById('editCategory').value : 'Receita';
+            const dateInput = document.getElementById('editDate').value;
+            const date = dateInput ? new Date(dateInput + 'T12:00:00') : new Date();
+
+            if (!description || !amount) {
+                alert('Preenche todos os campos!');
+                return;
+            }
+
+            const index = transactions.findIndex(t => t.id === editingId);
+            if (index !== -1) {
+                transactions[index] = {
+                    id: editingId,
+                    description,
+                    amount,
+                    type,
+                    category,
+                    date: date.toISOString()
+                };
+                updateUI();
+                hideEditModal();
+            }
+        }
+
+        function hideEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingId = null;
+        }
+
+        function toggleCategory() {
+            const type = document.getElementById('type').value;
+            const categoryDiv = document.getElementById('categoryDiv');
+            categoryDiv.style.display = type === 'despesa' ? 'block' : 'none';
+        }
+
+        function addTransaction() {
+            const description = document.getElementById('description').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            const category = type === 'despesa' ? document.getElementById('category').value : 'Receita';
+            const dateInput = document.getElementById('date').value;
+            const date = dateInput ? new Date(dateInput + 'T12:00:00') : new Date();
+
+            if (!description || !amount) {
+                alert('Preenche todos os campos!');
+                return;
+            }
+
+            const transaction = {
+                id: Date.now(),
+                description,
+                amount,
+                type,
+                category,
+                date: date.toISOString()
+            };
+
+            transactions.push(transaction);
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('date').valueAsDate = new Date();
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            updateSummary();
+            updateHistory();
+            updateChart();
+        }
+
+        function updateSummary() {
+            let balance = 0;
+            let income = 0;
+            let expenses = 0;
+
+            transactions.forEach(t => {
+                if (t.type === 'entrada') {
+                    income += t.amount;
+                    balance += t.amount;
+                } else {
+                    expenses += t.amount;
+                    balance -= t.amount;
+                }
+            });
+
+            document.getElementById('balance').textContent = '€' + balance.toFixed(2);
+            document.getElementById('balance').className = 'text-3xl font-bold ' + (balance >= 0 ? 'text-green-600' : 'text-red-600');
+            document.getElementById('income').textContent = '€' + income.toFixed(2);
+            document.getElementById('expenses').textContent = '€' + expenses.toFixed(2);
+        }
+
+        function updateHistory() {
+            const historyDiv = document.getElementById('history');
+            
+            if (transactions.length === 0) {
+                historyDiv.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhuma transação registada ainda</p>';
+                return;
+            }
+
+            const sorted = [...transactions].reverse();
+            historyDiv.innerHTML = sorted.map(t => `
+                <div class="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">${t.description}</p>
+                        <p class="text-sm text-gray-500">${t.category}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${t.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
+                            ${t.type === 'entrada' ? '+' : '-'}€${t.amount.toFixed(2)}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            ${new Date(t.date).toLocaleDateString('pt-PT')}
+                        </p>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        <button onclick="editTransaction(${t.id})" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
+                            ✏️ Editar
+                        </button>
+                        <button onclick="deleteTransaction(${t.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">
+                            🗑️ Apagar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateChart() {
+            const view = document.getElementById('view').value;
+            const data = getChartData(view);
+            
+            // Atualizar texto do período
+            document.getElementById('chartPeriod').textContent = data.periodLabel;
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Despesas',
+                        data: data.values,
+                        backgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function changeChartPeriod(direction) {
+            chartOffset += direction;
+            updateChart();
+        }
+
+        function resetChartPeriod() {
+            chartOffset = 0;
+        }
+
+        function getChartData(view) {
+            const now = new Date();
+            const labels = [];
+            const values = [];
+            let periodLabel = '';
+
+            if (view === 'semanal') {
+                // Calcular início da semana (domingo)
+                const weekStart = new Date(now);
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (chartOffset * 7));
+                
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                periodLabel = `Semana de ${weekStart.getDate()}/${weekStart.getMonth() + 1} a ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}/${weekEnd.getFullYear()}`;
+
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(weekStart);
+                    date.setDate(date.getDate() + i);
+                    const dayName = date.toLocaleDateString('pt-PT', { weekday: 'short' });
+                    const dayNum = date.getDate();
+                    
+                    const dayExpenses = transactions
+                        .filter(t => {
+                            const tDate = new Date(t.date);
+                            return t.type === 'despesa' && tDate.toDateString() === date.toDateString();
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    labels.push(`${dayName} ${dayNum}`);
+                    values.push(dayExpenses);
+                }
+            } else if (view === 'mensal') {
+                const targetMonth = new Date(now.getFullYear(), now.getMonth() + chartOffset, 1);
+                const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+                periodLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                
+                const daysInMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+                
+                // Mostrar todos os dias do mês
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), day);
+                    
+                    const dayExpenses = transactions
+                        .filter(t => {
+                            const tDate = new Date(t.date);
+                            return t.type === 'despesa' &&
+                                   tDate.getDate() === day &&
+                                   tDate.getMonth() === targetMonth.getMonth() &&
+                                   tDate.getFullYear() === targetMonth.getFullYear();
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    labels.push(day.toString());
+                    values.push(dayExpenses);
+                }
+            } else {
+                const targetYear = now.getFullYear() + chartOffset;
+                periodLabel = `Ano ${targetYear}`;
+                
+                const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                
+                for (let month = 0; month < 12; month++) {
+                    const monthExpenses = transactions
+                        .filter(t => {
+                            const tDate = new Date(t.date);
+                            return t.type === 'despesa' &&
+                                   tDate.getMonth() === month &&
+                                   tDate.getFullYear() === targetYear;
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    labels.push(months[month]);
+                    values.push(monthExpenses);
+                }
+            }
+
+            return { labels, values, periodLabel };
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(transactions, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `financas_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        transactions = importedData;
+                        // Adicionar categorias importadas que não existem
+                        importedData.forEach(t => {
+                            if (t.type === 'despesa' && t.category && !categories.includes(t.category)) {
+                                categories.push(t.category);
+                            }
+                        });
+                        updateCategorySelect();
+                        updateUI();
+                        alert('Dados importados com sucesso!');
+                    } else {
+                        alert('Formato de ficheiro inválido!');
+                    }
+                } catch (error) {
+                    alert('Erro ao ler o ficheiro. Verifica se é um ficheiro JSON válido.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Inicializar
+        updateCategorySelect();
+        updateChart();
+    </script>
+</body>
+</html>
