@@ -279,7 +279,7 @@
             const type = document.getElementById('editType').value;
             const category = type === 'despesa' ? document.getElementById('editCategory').value : 'Receita';
             const dateInput = document.getElementById('editDate').value;
-            const date = dateInput ? new Date(dateInput + 'T12:00:00') : new Date();
+            const date = dateInput ? new Date(dateInput) : new Date();
 
             if (!description || !amount) {
                 alert('Preenche todos os campos!');
@@ -318,7 +318,7 @@
             const type = document.getElementById('type').value;
             const category = type === 'despesa' ? document.getElementById('category').value : 'Receita';
             const dateInput = document.getElementById('date').value;
-            const date = dateInput ? new Date(dateInput + 'T12:00:00') : new Date();
+            const date = dateInput ? new Date(dateInput) : new Date();
 
             if (!description || !amount) {
                 alert('Preenche todos os campos!');
