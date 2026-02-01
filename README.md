@@ -1,2 +1,2 @@
-# Financas
-Aplicações financeiras pessoais
+# Finance
+Personal budget control aplication
